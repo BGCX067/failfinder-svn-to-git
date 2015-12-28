@@ -1,0 +1,156 @@
+FAILFINDER
+A debugger and error analysis toolbox for machine translation decoders
+
+AUTHORS
+Loic Barrault
+Ondrej Bojar
+Jonathan Clark
+Qin Gao
+Kenneth Kenneth
+David Marecek
+Martin Popel
+Dan Zeman
+
+STARTING POINT
+
+We don't like the outputs of our MT systems.
+
+QUESTIONS
+
+1) What don't we like?
+	- This is hard to answer!
+ 
+2) What sentences are "interesting?"
+	- In the context of iterative system refinement, those that changed between 2 systems
+	- In the context of a system vs references, it's harder to say.
+
+3) Why are my translations bad?
+	- What are the limits of my training data? (OOV on source and target side and on phrase-tables)
+	- What better translation could my system have given? (Oracle decoding)
+	- Why didn't my system translate this sentence as X? (Forced decoding + error categorization)
+	- Where did it all go wrong? (Search path comparison)
+
+
+
+OOV Experiments
+
+- A very rough estimate of reachability.
+  $MOSES/scripts/analysis/oov.pl
+
+  	Training	    	Test	
+  	Toks    	Voc 	Toks	Voc
+en	75M     	595k	66k 	9k
+cs	66M     	856k	56k 	15k
+
+n-grams Out of Vocabulary	   1	    2	    3	    4
+en                       	1.5%	13.9%	47.8%	79.1%
+cs                       	2.2%	29.7%	69.2%	90.0%
+
+1-grams OOV in en->cs phrase-table
+en (source)	1.6%	Eastronville, ..., Héma-Québec, bed-space
+cs (target)	2.3%	-, names, declinated nouns
+=> most of the corpus actually gets to the phrase table
+
+
+
+Reachability with Moses
+
+- Code by Lane Schwartz; in trunk.
+  moses –i in.txt –constraint ref.txt –f moses.ini
+- Search not quite exhaustive, bounded by:
+  - phrase table filtration; this is OK.
+  - -ttable-limit; this is OK.
+  - -distortion-limit; this is OK.
+  - -translation-option-threshold
+  - -max-partial-trans-opt (default 10000)
+  - -persistent-cache-size (default 10000)
+  - -max-trans-opt-per-coverage (default 50!!)
+
+
+
+
+en<->cs Reachability
+
+Distortion    	->cs	->cs 	->csLEM	->en
+             3	 1.4	  3.5	    2.7	  1.7
+             6	 1.9	  4.8	    3.9	  2.2
+            10	 2.2	  5.4	    4.6	  2.3
+            30	 2.4	  5.9	    5.1	  2.4
+            40	 2.4	  5.9	    5.1	  2.4
+Parallel sents	126k	6M   	126k   	126k
+BLEU          	9.94	15.59	(16.94)	15.38
+
+Tested on 2525 sents.
+
+
+en->cs Reachability of Training Data
+
+Distortion\TTable Limit	  10	  20	  50	 100	 500
+                      3	64.2	65.0	65.7	65.7	65.7
+                      6	65.2	66.5	67.5	67.5	67.5
+                     10	73.5	75.4	77.2	77.2	77.2
+                     30	82.7	85.0	-   	-   	-
+                     40	82.9	85.2	-   	-   	-
+                     60	82.9	85.2	-   	-   	-
+                    100	-   	85.2	-   	-   	-
+
+Tested on 2k of 126k training sentences.
+
+
+Linguistically Promising Factored Setup
+
+- Two alternative paths:
+   form -> form(+lemma+tag)
+   form -> lemma+tag -generate-> form
+- Fights target-side sparseness.
+- Can use a large monolingual corpus for generation.
+
+- Good:
+  - OOV of the generation step 1.1%
+  - Reachability hopefully 5\% (estimated on 625 sents)
+- Bad:
+  - BLEU 12.07±0.45 instead of 13.43±0.45
+  - Reachability takes 7--22 min/sent instead of 0.3 sec/sent
+  - MERT needed 30 iterations instead of 13
+
+
+MT-OUTPUT COMPARATOR
+
+- simple tool (written in Perl) for visualisation of differences
+  - between two MT-systems
+  - between two versions of one MT-system
+
+- input:
+  - source sentences,
+  - reference translations,
+  - two MT-outputs we want to compare
+
+- output:
+  - HTML file with highlighted matching sequences
+  - sentences are sorted according to the difference in number of n-grams  matching the reference
+ 
+/scripts/MToutput_comparator
+http://ufal.mff.cuni.cz/~marecek/sample.html
+
+
+
+SEARCH GRAPH VISUALISER
+
+by Loic
+
+$MOSES/scripts/analysis/sg2dot.pl
+
+
+
+
+
+ERROR CATEGORIZER
+Jonathan Clark
+
+N-best list format...
+
+SEARCH PATH ANALYZER
+Jonathan Clark
+
+Search Path format...
+

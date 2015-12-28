@@ -1,0 +1,6 @@
+MT-OUTPUT COMPARATOR
+
+# Copyright 2010 Martin Popel <popel@ufal.mff.cuni.cz>, David Mareček <marecek@ufal.mff.cuni.cz>
+# License: GNU GPL
+
+Yes, the two above were too lazy to write some documentation. Inspect the Makefile instead.
